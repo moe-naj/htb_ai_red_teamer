@@ -233,3 +233,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Models / ML artifacts
+*.joblib
+*.pkl
+*.pickle
+*.h5
+*.keras
