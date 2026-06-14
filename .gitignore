@@ -240,8 +240,9 @@ __marimo__/
 *.pickle
 *.h5
 *.keras
-
-# Large model and dataset files
 *.pth
+
+# Large dataset files
 malimg_paper_dataset_imgs/
 newdata/
+imdb_collection/
