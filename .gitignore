@@ -246,3 +246,5 @@ __marimo__/
 malimg_paper_dataset_imgs/
 newdata/
 imdb_collection/
+GTSRB/
+gtsrb_downloads/
