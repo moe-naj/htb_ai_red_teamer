@@ -248,3 +248,7 @@ newdata/
 imdb_collection/
 GTSRB/
 gtsrb_downloads/
+data/
+*.idx3-ubyte
+*.idx1-ubyte
+*.ubyte
