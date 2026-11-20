@@ -327,3 +327,122 @@ output_dir.mkdir(exist_ok=True)
 plt.savefig(output_dir / "attack_effectiveness.png", dpi=150, facecolor=NODE_BLACK)
 plt.close()
 print(f"\n[+] Plot saved to {output_dir / 'attack_effectiveness.png'}")
+
+print("\n[*] Analyzing individual word impact...")
+
+# Use 50 spam messages as a representative sample
+sample_spam = spam_test_messages[:50]
+word_impacts = []
+
+print(f"[+] Testing {len(top_good_words[:20])} words on {len(sample_spam)} spam messages")
+
+for word, _, _, _ in top_good_words[:20]:
+    total_impact = 0
+
+    for message in sample_spam:
+        # Calculate original spam probability
+        vec_orig = vectorizer.transform([message])
+        prob_orig = classifier.predict_proba(vec_orig)[0][1]  # spam prob
+
+        # Calculate probability after adding the word
+        vec_aug = vectorizer.transform([message + " " + word])
+        prob_aug = classifier.predict_proba(vec_aug)[0][1]
+
+        # Measure the probability reduction
+        impact = prob_orig - prob_aug
+        total_impact += impact
+
+    # Calculate average impact across all messages
+    avg_impact = (total_impact / len(sample_spam)) * 100
+    word_impacts.append((word, avg_impact))
+
+    # Show progress for first few words
+    if len(word_impacts) <= 3:
+        print(f"  Word '{word}': {avg_impact:.2f}% reduction")
+
+word_impacts.sort(key=lambda x: x[1], reverse=True)
+print(f"Most Effective Word: '{word_impacts[0][0]}' (reduces spam prob by {word_impacts[0][1]:.1f}%)")
+
+# Plot word impacts
+fig, ax = plt.subplots(figsize=(10, 8), facecolor=NODE_BLACK)
+
+words = [w for w, _ in word_impacts]
+impacts = [i for _, i in word_impacts]
+colors = [HTB_GREEN if i > 15 else NUGGET_YELLOW if i > 10 else HACKER_GREY for i in impacts]
+
+bars = ax.barh(range(len(words)), impacts, color=colors, edgecolor='white', linewidth=0.5)
+
+ax.set_yticks(range(len(words)))
+ax.set_yticklabels(words)
+ax.set_xlabel('Average Spam Probability Reduction (%)', fontsize=12, color=HTB_GREEN)
+ax.set_title('Individual Word Impact on Spam Detection', fontsize=14, color=HTB_GREEN, pad=20)
+ax.grid(axis='x', alpha=0.2)
+ax.set_facecolor(NODE_BLACK)
+
+for spine in ax.spines.values():
+    spine.set_color(HACKER_GREY)
+ax.tick_params(colors=HACKER_GREY)
+
+plt.tight_layout()
+plt.savefig(output_dir / "word_impact.png", dpi=150, facecolor=NODE_BLACK)
+plt.close()
+print(f"[+] Plot saved to {output_dir / 'word_impact.png'}")
+
+print("\n[*] Visualizing probability shifts...")
+
+# Sample messages for detailed analysis
+sample_messages = spam_test_messages[:8]
+test_word_counts = [0, 5, 10, 20, 30]
+
+fig, ax = plt.subplots(figsize=(14, 6), facecolor=NODE_BLACK)
+
+x = np.arange(len(sample_messages))
+width = 0.15
+colors_list = [MALWARE_RED, NUGGET_YELLOW, AZURE, HTB_GREEN, AQUAMARINE]
+
+for i, num_words in enumerate(test_word_counts):
+    # Select the appropriate number of good words
+    selected = [w for w, _, _, _ in top_good_words[:num_words]]
+    probs = []
+
+    for msg in sample_messages:
+        # Augment message with selected words
+        if num_words > 0:
+            aug_msg = msg + " " + " ".join(selected)
+        else:
+            aug_msg = msg
+
+        # Calculate spam probability
+        vec = vectorizer.transform([aug_msg])
+        spam_prob = classifier.predict_proba(vec)[0][1]
+        probs.append(spam_prob)
+
+    # Create grouped bars with distinct colors
+    bars = ax.bar(x + i*width, probs, width,
+                   label=f'{num_words} words',
+                   color=colors_list[i], alpha=0.8)
+
+    # Mark successful evasions
+    for j, (bar, prob) in enumerate(zip(bars, probs)):
+        if prob < 0.5:
+            ax.text(bar.get_x() + bar.get_width()/2, prob + 0.02,
+                   '✓', ha='center', va='bottom', color=HTB_GREEN, fontweight='bold')
+
+ax.axhline(y=0.5, color='white', linestyle='--', alpha=0.5, label='Decision boundary')
+ax.set_xlabel('Message Index', fontsize=12, color=HTB_GREEN)
+ax.set_ylabel('Spam Probability', fontsize=12, color=HTB_GREEN)
+ax.set_title('Probability Shift with Increasing Good Words', fontsize=14, color=HTB_GREEN, pad=20)
+ax.set_xticks(x + width * 2)
+ax.set_xticklabels([f'M{i+1}' for i in range(len(sample_messages))])
+ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1), borderaxespad=0)
+ax.grid(axis='y', alpha=0.2)
+ax.set_facecolor(NODE_BLACK)
+
+for spine in ax.spines.values():
+    spine.set_color(HACKER_GREY)
+ax.tick_params(colors=HACKER_GREY)
+
+plt.tight_layout()
+plt.savefig(output_dir / "probability_shift.png", dpi=150, facecolor=NODE_BLACK)
+plt.close()
+print(f"[+] Plot saved to {output_dir / 'probability_shift.png'}")
